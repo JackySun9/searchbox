@@ -1,12 +1,13 @@
 import { h, Component } from 'preact';
 import Popover from './popover.js'
 import './search.css';
+import Card from './card.js';
 
-const SCOPE = 'adobecom';
+const SCOPE = 'adobe_com';
 const API_KEY = 'adobedotcom2';
 
 class SearchBox extends Component {
-  state = { query: '', suggestions: [], showPopover: false };
+  state = { query: '', results: [], suggestions: [], showResult:false, showPopover: false };
 
   fetchSuggestions = async (query) => {
     const response = await fetch(`https://adobesearch.adobe.io/autocomplete/completions?q[text]=${query}&q[locale]=en_us&scope=${SCOPE}`, {
@@ -21,20 +22,39 @@ class SearchBox extends Component {
     this.setState({ suggestions: data.suggested_completions || [], showPopover: true });
   };
 
+  fetchSearchResults = async (query) => {
+    const response = await fetch(`https://adobesearch.adobe.io/universal-search-enterprise/search`, {
+      method: 'POST',
+      headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json'},
+      body: JSON.stringify({ q: query, locale: 'en_us', scope: [SCOPE],}),
+    });
+    if (!response.ok) {
+      console.error('Failed to fetch search results');
+      return;
+    }
+    const data = await response.json();
+    console.log(data);
+    this.setState({ results: data.result_sets[0].items, showResult: true});
+  }
+
   handleInput = async (e) => {
     const query = e.target.value;
     this.setState({ query });
     if (query.length > 1) { // Only fetch suggestions if the query length is greater than 1
       await this.fetchSuggestions(query);
     } else {
-      this.setState({ suggestions: [], showPopover: false  });
+      this.setState({ suggestions: [], showPopover: false, showResult: false});
     }
   };
 
-  handleSubmit = (e) => {
+  handleSubmit = async (e) => {
     e.preventDefault();
     console.log(`Searching for: ${this.state.query}`);
-    // Implement search logic here
+    if (this.state.query.length > 0) {
+      await this.fetchSearchResults(this.state.query);
+    } else {
+      this.setState({ results: [], showResult: false});
+    }
   };
 
   renderSuggestions = () => {
@@ -44,23 +64,44 @@ class SearchBox extends Component {
         ));
   };
 
+  renderResults = () => {
+    const { results } = this.state;
+    return results.map((result, index) => (
+          <Card
+            key={index} 
+            title={result.asset_name}
+            content={result.excerpt} 
+            imageUrl="https://placekitten.com/300/200"
+            url={result._links.source.href}
+          />
+        ));
+  };
+
   render() {
-    const { query, showPopover } = this.state;
+    const { query, showPopover, showResult } = this.state;
 
     return (
-      <form onSubmit={this.handleSubmit} className="search-box">
-        <input
-          type="search"
-          value={this.state.query}
-          onInput={this.handleInput}
-          placeholder="Search Adobe Support"
-          style={{ width: '300px', padding: '10px', marginRight: '10px' }}
-        />
-        {showPopover && (
-          <Popover content={this.renderSuggestions()} placement="bottom" />
+      <div>
+        <form onSubmit={this.handleSubmit} className="search-box">
+          <input
+            type="search"
+            value={this.state.query}
+            onInput={this.handleInput}
+            placeholder="Search Adobe Support"
+            style={{ width: '300px', padding: '10px', marginRight: '10px' }}
+          />
+          {showPopover && (
+            <Popover content={this.renderSuggestions()} placement="bottom" />
+          )}
+          <button type="submit" className="button-sumbit">Search</button>
+          
+        </form>
+        {showResult && (
+          <div className="search-results">
+              {this.renderResults()}
+          </div>
         )}
-        <button type="submit" className="button-sumbit">Search</button>
-      </form>
+      </div>
     );
   }
 }
