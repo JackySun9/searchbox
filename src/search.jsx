@@ -1,10 +1,12 @@
 import { h, Component } from 'preact';
+import Popover from './popover.js'
+import './search.css';
 
 const SCOPE = 'adobecom';
 const API_KEY = 'adobedotcom2';
 
 class SearchBox extends Component {
-  state = { query: '', suggestions: [] };
+  state = { query: '', suggestions: [], showPopover: false };
 
   fetchSuggestions = async (query) => {
     const response = await fetch(`https://adobesearch.adobe.io/autocomplete/completions?q[text]=${query}&q[locale]=en_us&scope=${SCOPE}`, {
@@ -16,16 +18,16 @@ class SearchBox extends Component {
       return;
     }
     const data = await response.json();
-    this.setState({ suggestions: data.suggested_completions || [] });
+    this.setState({ suggestions: data.suggested_completions || [], showPopover: true });
   };
 
-  handleInput = (e) => {
+  handleInput = async (e) => {
     const query = e.target.value;
     this.setState({ query });
     if (query.length > 1) { // Only fetch suggestions if the query length is greater than 1
-      this.fetchSuggestions(query);
+      await this.fetchSuggestions(query);
     } else {
-      this.setState({ suggestions: [] });
+      this.setState({ suggestions: [], showPopover: false  });
     }
   };
 
@@ -35,9 +37,18 @@ class SearchBox extends Component {
     // Implement search logic here
   };
 
+  renderSuggestions = () => {
+    const { suggestions } = this.state;
+    return suggestions.map((suggestion, index) => (
+          <div key={index} style={{ padding: '1px', cursor: 'pointer'}} onClick={() => this.setState({ query: suggestion.name, suggestions: [], showPopover: false })}>{suggestion.name}</div>
+        ));
+  };
+
   render() {
+    const { query, showPopover } = this.state;
+
     return (
-      <form onSubmit={this.handleSubmit} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '20px' }}>
+      <form onSubmit={this.handleSubmit} className="search-box">
         <input
           type="search"
           value={this.state.query}
@@ -45,16 +56,10 @@ class SearchBox extends Component {
           placeholder="Search Adobe Support"
           style={{ width: '300px', padding: '10px', marginRight: '10px' }}
         />
-        <button type="submit" style={{ padding: '10px 20px' }}>Search</button>
-        {this.state.suggestions.length > 0 && (
-          <ul style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', listStyleType: 'none', padding: 0 }}>
-            {this.state.suggestions.map((suggestion, index) => (
-              <li key={index} style={{ padding: '1px', cursor: 'pointer', textAlign: 'left' }} onClick={() => this.setState({ query: suggestion.name, suggestions: [] })}>
-                {suggestion.name}
-              </li>
-            ))}
-          </ul>
+        {showPopover && (
+          <Popover content={this.renderSuggestions()} placement="bottom" />
         )}
+        <button type="submit" className="button-sumbit">Search</button>
       </form>
     );
   }

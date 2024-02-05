@@ -1,0 +1,30 @@
+.popover-container {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .popover-content {
+    position: absolute;
+    z-index: 10;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    max-height: 404px;
+    overflow-y: auto;
+    text-align: left;
+    width: 280px;
+  }
+
+  .popover-content div:hover {
+    background-color: #f0f0f0; /* Highlight color on hover */
+  }
+  
+  .popover-bottom {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-103%);
+  }
+  
+  /* You can add more positioning styles based on the 'placement' prop */
+  
